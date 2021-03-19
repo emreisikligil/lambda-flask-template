@@ -1,6 +1,6 @@
 # Lambda Flask Template
 
-This is a template for configuring and deploying Flask apps on AWS Lambda. 
+This is a template for configuring and deploying Flask apps on AWS Lambda.
 
 ## Template Modules
 
@@ -106,7 +106,7 @@ This folder contains database migration scripts and managed by Flask-Migrate pac
 
 1. Edit swagger spec to match your API. This will be used for validating incoming request bodies automatically. If you do not want to use this feature you can skip this step and remove **spec** folder.
 
-   1. Put your spec to `application/spec/swagger.yml`. JSON object to be validate must be defined under **definitions**.
+   1. Put your spec to `application/spec/swagger.yml`. JSON objects to be validated must be defined under **definitions**.
    1. Run `make deref-spec` in order to dereference the refs in the spec. Validator does not dereference them automatically yet.
 
 1. Create API documentation from swagger.yml.
@@ -148,7 +148,7 @@ This folder contains database migration scripts and managed by Flask-Migrate pac
 
 1. Test your application
 
-   1. Add tests to cover you application
+   1. Add tests to cover your application
    1. Run your tests.
 
       ```sh
@@ -189,9 +189,7 @@ We use [Serverless](https://www.serverless.com/) to deploy the application to th
       service: your_application_name
       ```
 
-   1. Edit configuration properties under `provider.environment`
-
-      1. Configuration properties are fetched from AWS SSM Parameter Store. Therefore, you need to add your configuration properties to SSM Parameter Store before deploying the application.
+   1. Edit configuration properties under `provider.environment`. Configuration properties are fetched from AWS SSM Parameter Store. Therefore, you need to add your configuration properties to SSM Parameter Store before deploying the application.
 
       E.g. if you have the following configuration property
 
@@ -207,28 +205,29 @@ We use [Serverless](https://www.serverless.com/) to deploy the application to th
       /dev/application/db
       ```
 
-   1. If you are planning to use a S3 bucket, then you need to check/update following items. Otherwise, you can delete them.
+   1. If you are planning to use a S3 bucket, then you need to check/update the following items. Otherwise, you can delete them.
 
       `provider.s3`: Creates the S3 bucket.
+
       `provider.iamRoleStatements`: Grants permissions to the lambda function for access to the created bucket
+
       `resources.Resources.s3Policy`: In case you need additional policy for the created s3 bucket
 
    1. To create an API Gateway endpoint, check/update `custom.domains` and `custom.customDomain` keys. Serverless plugin (_serverless-domain-manager_) will handle API Gateway endpoint creation.
 
-   1. you need to updata `custom.vpc` key in order to place the function in a specific VPC. Otherwise, you need to remove `provider.vpc` and `custom.vpc`.
+   1. You need to update `custom.vpc` key in order to place the lambda function in a specific VPC. Otherwise, you need to remove `provider.vpc` and `custom.vpc`.
 
    1. If you make any changes to the application package you need to reflect these changes to `custom.wsgi.app` key. It is how wsgi server finds your Flask application.
 
    1. `custom.pythonRequirements` key configures _serverless-python-requirements_ plugin. Edit if necessary.
 
-1. Run the following command. It uses the default aws account. This account needs to have the necessary permissions to perform operations listed under _serverless.yml_
+1. Run the following command. It uses the default aws account. This account needs to have the necessary permissions to perform operations listed under **serverless.yml**
 
    ```sh
    serverless deploy -s stage
    ```
 
    where **stage** is one of _dev, staging, prod_
-
 
 ## Makefile
 
