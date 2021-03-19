@@ -1,0 +1,151 @@
+swagger: '2.0'
+info:
+  title: Application Service
+  description: API definition for Application Service
+  version: 0.1.0
+produces:
+  - application/json
+consumes:
+  - application/json
+schemes:
+  - http
+  - https
+
+parameters:
+  page:
+    in: query
+    name: page
+    description: Result page to be returned
+    type: integer
+    minimum: 0
+  pageSize:
+    in: query
+    name: pageSize
+    description: Size of a single result page
+    type: integer
+    minimum: 10
+    maximum: 50
+
+paths:
+  /health:
+    get:
+      summary: Get health
+      operationId: getHealth
+      description: |
+        Gets status of the app. Response code 200 indicates healthy status. Response codes other
+        than 200 indicates unhealthy status.
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/AppStatus'
+        '500':
+          $ref: '#/responses/InternalServerError'
+  /pets:
+    post:
+      summary: Add pet
+      operationId: addPet
+      description: Adds a new pet
+      parameters:
+        - in: body
+          name: pet
+          required: true
+          schema:
+            $ref: '#/definitions/AddPetRequest'
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Pet'
+        '400':
+          $ref: '#/responses/BadRequest'
+        '401':
+          $ref: '#/responses/Unauthorized'
+        '500':
+          $ref: '#/responses/InternalServerError'
+    get:
+      summary: Get pets
+      operationId: getPets
+      description: Returns all pets.
+      parameters:
+        - $ref: '#/parameters/page'
+        - $ref: '#/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Pet'
+        '401':
+          $ref: '#/responses/Unauthorized'
+        '500':
+          $ref: '#/responses/InternalServerError'
+responses:
+  BadRequest:
+    description: Bad Request
+    schema:
+      $ref: '#/definitions/Error'
+  Unauthorized:
+    description: Unauthorized
+    schema:
+      $ref: '#/definitions/Error'
+  InternalServerError:
+    description: Internal Server Error
+    schema:
+      $ref: '#/definitions/Error'
+
+definitions:
+  AddPetRequest:
+    type: object
+    properties:
+      pet_type:
+        '$ref': '#/definitions/PetType'
+      breed:
+        type: string
+        maxLength: 64
+      name:
+        type: string
+        maxLength: 128
+      description:
+        type: string
+        maxLength: 512
+      owner:
+        type: string
+        maxLength: 128
+    required:
+      - pet_type
+      - breed
+      - name
+  Pet:
+    allOf:
+      - $ref: '#/definitions/AddPetRequest'
+      - type: object
+        properties:
+          id:
+            type: integer
+        required:
+          - id
+  PetType:
+    type: string
+    enum: [cat, dog]
+  AppStatus:
+    type: object
+    properties:
+      status:
+        type: string
+        enum:
+          - UP
+    required:
+      - status
+  Error:
+    type: object
+    properties:
+      error:
+        type: string
+      msg:
+        type: string
+    required:
+      - error
