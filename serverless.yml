@@ -1,0 +1,128 @@
+# Assign any name to the project. Update all references below. Also, rename application folder.
+service: application
+
+plugins:
+  - serverless-python-requirements
+  - serverless-wsgi
+  - serverless-domain-manager
+
+package:
+  exclude:
+    - ./**
+  include:
+    - application/**
+    #- docs/**
+
+provider:
+  name: aws
+  runtime: python3.8
+  region: us-west-2
+  memorySize: 256
+  stage: ${opt:stage, 'dev'}
+  timeout: 30
+  endpointType: REGIONAL
+  environment:
+    ENVIRONMENT: ${self:provider.stage}
+    RSA_PUBLIC_KEY: ${ssm:/${self:provider.stage}/application/RSA_PUBLIC_KEY~true}
+    API_GATEWAY_BASE_PATH: ${self:custom.customDomain.basePath}
+    SQLALCHEMY_DATABASE_URI: ${ssm:/${self:provider.stage}/application/db~true}
+    S3_BUCKET: ${self:provider.s3.bucket.name}
+  # Additional permissions for this lambda role
+  iamRoleStatements:
+    # Permissions to read parameters from SSM. Remove this if no ssm parameter access is needed.
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+        - ssm:GetParameters
+      Resource: arn:aws:ssm:*:*:parameter/*
+    # Permissions to access the bucket created below. Remove this if no bucket access is needed.
+    - Effect: Allow
+      Action:
+        - "s3:*"
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - ${self:provider.s3.bucket.name}
+            - "/*"
+  # VPC details in case you want this lambda to run in a specific VPC. Comment out if not needed.
+  vpc:
+    securityGroupIds:
+      - ${self:custom.vpc.${self:provider.stage}.securityGroupId}
+    subnetIds:
+      - ${self:custom.vpc.${self:provider.stage}.subnetId1}
+      - ${self:custom.vpc.${self:provider.stage}.subnetId2}
+      - ${self:custom.vpc.${self:provider.stage}.subnetId3}
+      - ${self:custom.vpc.${self:provider.stage}.subnetId4}
+  # S3 bucket creation through Cloud Formation
+  s3:
+    bucket:
+      name: bucket-${self:provider.stage}
+      accessControl: Private
+      bucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      corsConfiguration:
+        CorsRules:
+          - AllowedMethods: [GET, PUT, POST]
+            AllowedOrigins: ["*"]
+            AllowedHeaders: ["*"]
+
+custom:
+  wsgi:
+    app: application.app.app
+  domains:
+    prod: api.yourdomain.com
+    staging: staging.api.yourdomain.com
+    dev: dev.api.yourdomain.com
+  customDomain:
+    basePath: application
+    domainName: ${self:custom.domains.${self:provider.stage}}
+    stage: ${self:provider.stage}
+    endpointType: regional
+  pythonRequirements:
+    dockerizePip: non-linux
+    dockerSsh: true
+    cacheLocation: /tmp/serverless_cache # Use a cache location to avoid downloading dependencies every time.
+
+  vpc:
+    dev:
+      securityGroupId: sg-id
+      subnetId1: subnet-id1
+      subnetId2: subnet-id2
+      subnetId3: subnet-id3
+      subnetId4: subnet-id4
+    staging:
+      securityGroupId: sg-id
+      subnetId1: subnet-id1
+      subnetId2: subnet-id2
+      subnetId3: subnet-id3
+      subnetId4: subnet-id4
+    prod:
+      securityGroupId: sg-id
+      subnetId1: subnet-id1
+      subnetId2: subnet-id2
+      subnetId3: subnet-id3
+      subnetId4: subnet-id4
+
+resources:
+  Resources:
+    s3Policy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: ${self:provider.s3.bucket.name}
+        PolicyDocument:
+          Statement:
+            - Action: s3:GetObject
+              Effect: Allow
+              Resource: arn:aws:s3:::${self:provider.s3.bucket.name}/*
+              Principal: "*"
+
+functions:
+  app:
+    handler: wsgi_handler.handler
+    name: application-${self:provider.stage}
+    events:
+      - http: ANY /
+      - http: "ANY {proxy+}"
